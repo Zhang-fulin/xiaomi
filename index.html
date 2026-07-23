@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小米集团 (01810.HK) 持仓市值实时计算器与退休计划</title>
+    <style>
+        :root {
+            --primary: #ff6700;
+            --primary-hover: #f25800;
+            --bg-color: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-main: #1d1d1f;
+            --text-muted: #86868b;
+            --border-color: #e5e5e7;
+            --profit-red: #eb4d4b;
+            --loss-green: #2ecc71;
+            --info-blue: #0071e3;
+            --table-header-bg: #f2f2f7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            padding: 32px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .title-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        .mi-logo-img {
+            width: 32px;
+            height: 32px;
+            display: inline-block;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .header p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* 主体左右布局容器 */
+        .main-layout {
+            display: flex;
+            gap: 32px;
+            align-items: flex-start;
+        }
+
+        /* 左侧：整体框架 */
+        .left-panel {
+            flex: 0 0 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 右侧：表格区域 */
+        .right-panel {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* 结果面板（左侧上半部） */
+        .results-section {
+            background-color: #fafafa;
+            border-radius: 14px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .result-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .result-card:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .result-value {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .highlight-value {
+            font-size: 22px;
+            color: var(--primary);
+        }
+
+        .progress-box {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-bg {
+            height: 10px;
+            background-color: #e5e5e7;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff9f43, #ff6700);
+            width: 0%;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+
+        /* 输入参数网格（左侧下半部） */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.2s ease;
+            background-color: #fafafa;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            background-color: #fff;
+            box-shadow: 0 0 0 3px rgba(255, 103, 0, 0.15);
+        }
+
+        .price-input-wrapper {
+            position: relative;
+        }
+
+        .price-input-wrapper input {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            padding-right: 60px;
+        }
+
+        .price-input-wrapper .unit {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .refresh-btn {
+            background-color: #f2f2f7;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 11px;
+            color: var(--info-blue);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .refresh-btn:hover {
+            background-color: #e5e5ea;
+        }
+
+        .refresh-btn.spinning svg {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .status-tag {
+            font-size: 11px;
+            font-weight: normal;
+            color: var(--info-blue);
+        }
+
+        .status-tag.error {
+            color: var(--profit-red);
+        }
+
+        .is-profit { color: var(--profit-red); }
+        .is-loss { color: var(--loss-green); }
+
+        .table-wrapper {
+            max-height: 560px;
+            overflow-y: auto;
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-size: 13px;
+            background-color: #ffffff;
+        }
+
+        th, td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        th:last-child, td:last-child {
+            border-right: none;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background-color: var(--table-header-bg);
+            color: var(--text-main);
+            font-weight: 600;
+            z-index: 1;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #fafafa;
+        }
+
+        .highlight-cell {
+            font-weight: 700;
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="title-wrapper">
+            <!-- 小米官方 Logo SVG -->
+            <svg class="mi-logo-img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 808 808">
+                <g>
+                    <path fill="#ff6900" d="M723.79,84.42C647.55,8.48,537.94,0,404,0,269.89,0,160.12,8.58,83.92,84.72S0,270.43,0,404.39,7.74,648,84,724.14,269.9,808,404,808s243.85-7.71,320-83.86,84-185.78,84-319.75C808,270.25,800.16,160.54,723.79,84.42Z"></path>
+                    <path fill="#fff" d="M374.26,553.72a5,5,0,0,1-5.06,5H300.3a5.05,5.05,0,0,1-5.12-5V373.53a5.05,5.05,0,0,1,5.12-5h68.9a5,5,0,0,1,5.06,5Z"></path>
+                    <path fill="#fff" d="M509.18,553.72a5.05,5.05,0,0,1-5.09,5H438.5a5,5,0,0,1-5.1-5V398.26c-.07-27.15-1.62-55-15.64-69.06-12-12.09-34.51-14.86-57.88-15.44H241a5,5,0,0,0-5.07,5v235a5.07,5.07,0,0,1-5.12,5H165.16a5,5,0,0,1-5.06-5V254.31a5,5,0,0,1,5.06-5H354.52c49.49,0,101.22,2.26,126.74,27.81s27.92,77.3,27.92,126.85Z"></path>
+                    <path fill="#fff" d="M644.29,553.72a5.06,5.06,0,0,1-5.09,5H573.57a5,5,0,0,1-5.08-5V254.31a5,5,0,0,1,5.08-5H639.2a5.06,5.06,0,0,1,5.09,5Z"></path>
+                </g>
+            </svg>
+            <h1>小米集团 (01810.HK) 持仓测算</h1>
+        </div>
+        <p>退休计划实时动态估算</p>
+    </div>
+
+    <!-- 左右并排容器 -->
+    <div class="main-layout">
+        <!-- 左侧栏：上半部为测算结果，下半部为输入参数 -->
+        <div class="left-panel">
+            <!-- 上半部：测算结果面板 -->
+            <div class="results-section">
+                <div class="result-card">
+                    <span class="result-label">持仓市值 (港币 HKD)</span>
+                    <span class="result-value" id="valHkd">0.00 HKD</span>
+                </div>
+                <div class="result-card">
+                    <span class="result-label">折算市值 (人民币 RMB)</span>
+                    <span class="result-value highlight-value" id="valRmb">0.00 元</span>
+                </div>
+                <div class="result-card">
+                    <span class="result-label">持仓盈亏状况</span>
+                    <span class="result-value" id="profitVal">0.00 HKD</span>
+                </div>
+
+                <div class="progress-box">
+                    <div class="progress-header">
+                        <span>退休目标完成度</span>
+                        <span id="progressText" style="font-weight: bold; color: var(--primary);">0%</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progressBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下半部：输入参数区域 -->
+            <div class="form-grid">
+                <!-- 第一行：最新股价 + 汇率 -->
+                <div class="form-group">
+                    <label for="currentPrice">
+                        <span>股价 <span id="priceStatus" class="status-tag">获取中...</span></span>
+                        <button type="button" class="refresh-btn" id="refreshPriceBtn" onclick="refreshPrice()">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            刷新
+                        </button>
+                    </label>
+                    <div class="price-input-wrapper">
+                        <input type="number" id="currentPrice" value="27.14" step="0.01" min="0.01">
+                        <span class="unit">HKD</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="exchangeRate">
+                        <span>汇率 (1 RMB) <span id="rateStatus" class="status-tag">获取中...</span></span>
+                        <button type="button" class="refresh-btn" id="refreshRateBtn" onclick="refreshRate()">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            刷新
+                        </button>
+                    </label>
+                    <input type="number" id="exchangeRate" value="1.1577" step="0.0001">
+                </div>
+
+                <!-- 第二行：持股数 + 买入成本 -->
+                <div class="form-group">
+                    <label for="shareCount">持股数 (股)</label>
+                    <input type="number" id="shareCount" value="23400" step="100">
+                </div>
+
+                <div class="form-group">
+                    <label for="costPrice">买入成本 (HKD)</label>
+                    <input type="number" id="costPrice" value="43.592" step="0.001">
+                </div>
+
+                <!-- 第三行：定投金额 + 目标总市值 -->
+                <div class="form-group">
+                    <label for="monthlyInvest">月定投 (RMB)</label>
+                    <input type="number" id="monthlyInvest" value="10000" step="1000">
+                </div>
+
+                <div class="form-group">
+                    <label for="targetRmb">目标市值 (RMB)</label>
+                    <input type="number" id="targetRmb" value="3000000" step="10000">
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：达标所需股价测算表 -->
+        <div class="right-panel">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>目标时间</th>
+                            <th>剩余定投月数</th>
+                            <th>预计总持股</th>
+                            <th>平均持仓成本 (HKD)</th>
+                            <th>达标所需股价 (HKD)</th>
+                            <th>此时持仓收益率</th>
+                        </tr>
+                    </thead>
+                    <tbody id="priceTableBody">
+                        <!-- 由 JavaScript 动态渲染 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * 生成从 2026.09 到 2036.12 每隔 3 个月的节点数组
+     */
+    function generateQuarterlyNodes() {
+        const nodes = [];
+        const startYear = 2026;
+        const endYear = 2036;
+
+        for (let y = startYear; y <= endYear; y++) {
+            for (let m = 3; m <= 12; m += 3) {
+                if (y === 2026 && m < 9) continue;
+                nodes.push({ year: y, month: m });
+            }
+        }
+        return nodes;
+    }
+
+    /**
+     * 计算从【当前实际年月】到【目标节点年月】的相差月数
+     */
+    function getRemainingMonths(targetYear, targetMonth) {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+
+        const diff = (targetYear - currentYear) * 12 + (targetMonth - currentMonth);
+        return diff;
+    }
+
+    /**
+     * 核心算法：二分法求解动态线性增长下的达标股价、最终持股数与平均摊薄成本
+     */
+    function solveLinearTarget(startPrice, initShares, initCostHkd, monthlyInvestHkd, months, targetHkd) {
+        let lowPrice = 0.01;
+        let highPrice = 500.0;
+        let midPrice = startPrice;
+        let finalShares = initShares;
+        let totalCostHkd = initShares * initCostHkd;
+
+        for (let iter = 0; iter < 30; iter++) {
+            midPrice = (lowPrice + highPrice) / 2;
+            
+            let accumShares = initShares;
+            for (let m = 1; m <= months; m++) {
+                let priceAtMonth = startPrice + (m / months) * (midPrice - startPrice);
+                if (priceAtMonth <= 0) priceAtMonth = 0.01;
+                accumShares += (monthlyInvestHkd / priceAtMonth);
+            }
+
+            let endVal = accumShares * midPrice;
+            if (endVal < targetHkd) {
+                lowPrice = midPrice;
+            } else {
+                highPrice = midPrice;
+            }
+            finalShares = accumShares;
+        }
+
+        totalCostHkd = (initShares * initCostHkd) + (monthlyInvestHkd * months);
+        const avgCostPrice = totalCostHkd / finalShares;
+        const profitRate = avgCostPrice > 0 ? ((midPrice - avgCostPrice) / avgCostPrice) * 100 : 0;
+
+        return {
+            targetPrice: midPrice,
+            totalShares: finalShares,
+            avgCostPrice: avgCostPrice,
+            profitRate: profitRate
+        };
+    }
+
+    function calculate() {
+        const price = parseFloat(document.getElementById('currentPrice').value) || 0.01;
+        const initShares = parseFloat(document.getElementById('shareCount').value) || 0;
+        const cost = parseFloat(document.getElementById('costPrice').value) || 0;
+        const monthlyInvestRmb = parseFloat(document.getElementById('monthlyInvest').value) || 0;
+        const rate = parseFloat(document.getElementById('exchangeRate').value) || 1.1577;
+        const targetRmb = parseFloat(document.getElementById('targetRmb').value) || 3000000;
+
+        // 1. 持仓测算逻辑
+        const valHkd = price * initShares;
+        const valRmb = valHkd / rate;
+
+        const totalCostHkd = cost * initShares;
+        const profitHkd = valHkd - totalCostHkd;
+        const profitRate = totalCostHkd > 0 ? (profitHkd / totalCostHkd) * 100 : 0;
+
+        const progress = Math.min((valRmb / targetRmb) * 100, 100);
+
+        document.getElementById('valHkd').innerText = valHkd.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' HKD';
+        document.getElementById('valRmb').innerText = '¥ ' + valRmb.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const profitElem = document.getElementById('profitVal');
+        const profitSign = profitHkd >= 0 ? '+' : '';
+        profitElem.innerText = `${profitSign}${profitHkd.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} HKD (${profitSign}${profitRate.toFixed(2)}%)`;
+        
+        if (profitHkd >= 0) {
+            profitElem.className = 'result-value is-profit';
+        } else {
+            profitElem.className = 'result-value is-loss';
+        }
+
+        document.getElementById('progressBar').style.width = progress.toFixed(2) + '%';
+        document.getElementById('progressText').innerText = progress.toFixed(2) + '%';
+
+        // 2. 动态生成并计算季度表格
+        const targetHkd = targetRmb * rate;
+        const monthlyInvestHkd = monthlyInvestRmb * rate;
+        const priceTableBody = document.getElementById('priceTableBody');
+        const quarterNodes = generateQuarterlyNodes();
+        let priceRowsHtml = '';
+
+        quarterNodes.forEach(node => {
+            const months = getRemainingMonths(node.year, node.month);
+            if (months <= 0) return;
+
+            const res = solveLinearTarget(price, initShares, cost, monthlyInvestHkd, months, targetHkd);
+
+            const profitSignText = res.profitRate >= 0 ? '+' : '';
+            const profitClass = res.profitRate >= 0 ? 'is-profit' : 'is-loss';
+            
+            // 格式化月份为两位数字 (如: 03, 06, 09, 12)
+            const formattedMonth = String(node.month).padStart(2, '0');
+
+            priceRowsHtml += `
+                <tr>
+                    <td><b>${node.year}.${formattedMonth}</b></td>
+                    <td>${months}</td>
+                    <td>~${Math.round(res.totalShares).toLocaleString()} 股</td>
+                    <td>${res.avgCostPrice.toFixed(2)} 港币</td>
+                    <td class="highlight-cell">${res.targetPrice.toFixed(2)} 港币</td>
+                    <td class="${profitClass}" style="font-weight: 700;">${profitSignText}${res.profitRate.toFixed(2)}%</td>
+                </tr>
+            `;
+        });
+        priceTableBody.innerHTML = priceRowsHtml;
+    }
+
+    // 刷新股价按钮触发
+    function refreshPrice() {
+        const btn = document.getElementById('refreshPriceBtn');
+        btn.classList.add('spinning');
+        fetchStockPrice(() => {
+            btn.classList.remove('spinning');
+        });
+    }
+
+    // 刷新汇率按钮触发
+    function refreshRate() {
+        const btn = document.getElementById('refreshRateBtn');
+        btn.classList.add('spinning');
+        fetchExchangeRate(() => {
+            btn.classList.remove('spinning');
+        });
+    }
+
+    // 自动获取小米实时股价 (腾讯财经 API)
+    function fetchStockPrice(callback) {
+        const statusElem = document.getElementById('priceStatus');
+        statusElem.innerText = '获取中...';
+        statusElem.className = 'status-tag';
+
+        const script = document.createElement('script');
+        script.src = 'https://qt.gtimg.cn/q=hk01810?' + new Date().getTime();
+        
+        script.onload = function() {
+            if (typeof v_hk01810 !== 'undefined') {
+                const elements = v_hk01810.split('~');
+                const livePrice = parseFloat(elements[3]);
+                if (livePrice && !isNaN(livePrice)) {
+                    document.getElementById('currentPrice').value = livePrice.toFixed(2);
+                    statusElem.innerText = '● 已更新';
+                    statusElem.className = 'status-tag';
+                    calculate();
+                }
+            }
+            document.body.removeChild(script);
+            if (callback) callback();
+        };
+
+        script.onerror = function() {
+            statusElem.innerText = '● 获取失败';
+            statusElem.className = 'status-tag error';
+            if (callback) callback();
+        };
+
+        document.body.appendChild(script);
+    }
+
+    // 自动获取实时汇率 (CNY -> HKD)
+    async function fetchExchangeRate(callback) {
+        const statusElem = document.getElementById('rateStatus');
+        statusElem.innerText = '获取中...';
+        statusElem.className = 'status-tag';
+
+        try {
+            const response = await fetch('https://open.er-api.com/v6/latest/CNY?t=' + new Date().getTime());
+            if (!response.ok) throw new Error('网络异常');
+            
+            const data = await response.json();
+            if (data && data.rates && data.rates.HKD) {
+                const liveRate = data.rates.HKD;
+                document.getElementById('exchangeRate').value = liveRate.toFixed(4);
+                statusElem.innerText = '● 已更新';
+                statusElem.className = 'status-tag';
+                calculate();
+            }
+        } catch (error) {
+            statusElem.innerText = '● 获取失败';
+            statusElem.className = 'status-tag error';
+        } finally {
+            if (callback) callback();
+        }
+    }
+
+    // 监听所有输入框事件
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.addEventListener('input', calculate);
+    });
+
+    // 初始化运行
+    calculate();
+    fetchStockPrice();
+    fetchExchangeRate();
+</script>
+
+</body>
+</html>
