@@ -421,11 +421,13 @@
                     <thead>
                         <tr>
                             <th>目标时间</th>
-                            <th>剩余定投月数</th>
+                            <th>剩余月数</th>
                             <th>预计总持股</th>
-                            <th>平均持仓成本 (HKD)</th>
+                            <th>投入本金 (RMB)</th>
+                            <th>平均成本 (HKD)</th>
                             <th>达标所需股价 (HKD)</th>
-                            <th>此时持仓收益率</th>
+                            <th>盈利 (RMB)</th>
+                            <th>持仓收益率</th>
                         </tr>
                     </thead>
                     <tbody id="priceTableBody">
@@ -475,7 +477,6 @@
         let highPrice = 500.0;
         let midPrice = startPrice;
         let finalShares = initShares;
-        let totalCostHkd = initShares * initCostHkd;
 
         for (let iter = 0; iter < 30; iter++) {
             midPrice = (lowPrice + highPrice) / 2;
@@ -496,13 +497,16 @@
             finalShares = accumShares;
         }
 
-        totalCostHkd = (initShares * initCostHkd) + (monthlyInvestHkd * months);
+        const totalCostHkd = (initShares * initCostHkd) + (monthlyInvestHkd * months);
         const avgCostPrice = totalCostHkd / finalShares;
+        const profitHkd = targetHkd - totalCostHkd;
         const profitRate = avgCostPrice > 0 ? ((midPrice - avgCostPrice) / avgCostPrice) * 100 : 0;
 
         return {
             targetPrice: midPrice,
             totalShares: finalShares,
+            totalCostHkd: totalCostHkd,
+            profitHkd: profitHkd,
             avgCostPrice: avgCostPrice,
             profitRate: profitRate
         };
@@ -555,6 +559,10 @@
 
             const res = solveLinearTarget(price, initShares, cost, monthlyInvestHkd, months, targetHkd);
 
+            // 转换投入本金与盈利金额为人民币 RMB
+            const totalCostRmb = res.totalCostHkd / rate;
+            const profitRmb = res.profitHkd / rate;
+
             const profitSignText = res.profitRate >= 0 ? '+' : '';
             const profitClass = res.profitRate >= 0 ? 'is-profit' : 'is-loss';
             
@@ -566,8 +574,10 @@
                     <td><b>${node.year}.${formattedMonth}</b></td>
                     <td>${months}</td>
                     <td>~${Math.round(res.totalShares).toLocaleString()} 股</td>
+                    <td><b>¥ ${Math.round(totalCostRmb).toLocaleString()}</b></td>
                     <td>${res.avgCostPrice.toFixed(2)} 港币</td>
                     <td class="highlight-cell">${res.targetPrice.toFixed(2)} 港币</td>
+                    <td class="${profitClass}"><b>${profitSignText}¥ ${Math.round(profitRmb).toLocaleString()}</b></td>
                     <td class="${profitClass}" style="font-weight: 700;">${profitSignText}${res.profitRate.toFixed(2)}%</td>
                 </tr>
             `;
