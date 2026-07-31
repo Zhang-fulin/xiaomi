@@ -3,20 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小米集团 (01810.HK) 持仓市值实时计算器与退休计划</title>
+    <title>小米集团 (01810.HK) 持仓市值实时计算器</title>
     <style>
+        /* ========================
+           深色主题配色变量 (Dark Mode)
+           ======================== */
         :root {
+            color-scheme: dark;
             --primary: #ff6700;
             --primary-hover: #f25800;
-            --bg-color: #f5f5f7;
-            --card-bg: #ffffff;
-            --text-main: #1d1d1f;
-            --text-muted: #86868b;
-            --border-color: #e5e5e7;
-            --profit-red: #eb4d4b;
-            --loss-green: #2ecc71;
-            --info-blue: #0071e3;
-            --table-header-bg: #f2f2f7;
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-muted: #9e9e9e;
+            --border-color: #333333;
+            --profit-red: #ff5252;
+            --loss-green: #4caf50;
+            --info-blue: #448aff;
+            --table-header-bg: #282828;
+            --input-bg: #2a2a2a;
+            --input-bg-focus: #333333;
+            --section-bg: #242424;
         }
 
         * {
@@ -37,12 +44,46 @@
         }
 
         .container {
+            position: relative; /* 为右上角刷新按钮提供定位基准 */
             width: 100%;
             max-width: 1400px;
             background: var(--card-bg);
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             padding: 32px;
+        }
+
+        /* 容器右上角刷新网页按钮 */
+        .page-reload-btn {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .page-reload-btn:hover {
+            color: var(--text-main);
+            border-color: var(--primary);
+            background-color: var(--input-bg-focus);
+        }
+
+        .page-reload-btn:active svg {
+            transform: rotate(180deg);
+        }
+
+        .page-reload-btn svg {
+            transition: transform 0.3s ease;
         }
 
         .header {
@@ -57,7 +98,7 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            margin-bottom: 6px;
+            margin-bottom: 12px;
         }
 
         .mi-logo-img {
@@ -69,22 +110,45 @@
         .header h1 {
             font-size: 24px;
             font-weight: 700;
-            color: var(--text-main);
+            background: linear-gradient(135deg, #ff6700, #ffab91);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 1px;
         }
 
-        .header p {
-            font-size: 13px;
+        /* 顶部行情数据栏 */
+        .market-status-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 28px;
+            font-size: 14px;
+            flex-wrap: wrap;
+        }
+
+        .market-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .market-label {
             color: var(--text-muted);
         }
 
-        /* 主体左右布局容器 */
+        .market-value {
+            font-weight: 700;
+        }
+
+        /* 主体左右布局容器：上下高度完全拉齐 */
         .main-layout {
             display: flex;
             gap: 32px;
-            align-items: flex-start;
+            align-items: stretch;
         }
 
-        /* 左侧：整体框架 */
+        /* 左侧：支撑整体高度的主体 */
         .left-panel {
             flex: 0 0 420px;
             display: flex;
@@ -92,15 +156,16 @@
             gap: 20px;
         }
 
-        /* 右侧：表格区域 */
+        /* 右侧：开启相对定位，高度跟随左侧 */
         .right-panel {
             flex: 1;
             min-width: 0;
+            position: relative;
         }
 
         /* 结果面板（左侧上半部） */
         .results-section {
-            background-color: #fafafa;
+            background-color: var(--section-bg);
             border-radius: 14px;
             padding: 20px;
             border: 1px solid var(--border-color);
@@ -121,7 +186,22 @@
         .result-label {
             font-size: 14px;
             color: var(--text-muted);
-            font-weight: 500;
+            font-weight: 600;
+            letter-spacing: 2px;
+            position: relative;
+            padding-left: 12px;
+        }
+
+        .result-label::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 16px;
+            background: var(--primary);
+            border-radius: 2px;
         }
 
         .result-value {
@@ -129,16 +209,22 @@
             font-weight: 700;
             color: var(--text-main);
         }
-
-        .highlight-value {
-            font-size: 22px;
-            color: var(--primary);
+        
+        .multi-value {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+        
+        .sub-value {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: normal;
         }
 
         .progress-box {
             margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid var(--border-color);
         }
 
         .progress-header {
@@ -150,7 +236,7 @@
 
         .progress-bar-bg {
             height: 10px;
-            background-color: #e5e5e7;
+            background-color: var(--border-color);
             border-radius: 5px;
             overflow: hidden;
         }
@@ -189,16 +275,29 @@
             width: 100%;
             padding: 12px 16px;
             font-size: 15px;
+            color: var(--text-main);
             border: 1px solid var(--border-color);
             border-radius: 10px;
             outline: none;
             transition: all 0.2s ease;
-            background-color: #fafafa;
+            background-color: var(--input-bg);
+        }
+
+        /* 隐藏 Chrome, Safari, Edge, Opera 的上下微调按钮 */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* 隐藏 Firefox 的上下微调按钮 */
+        input[type=number] {
+            -moz-appearance: textfield;
         }
 
         input:focus {
             border-color: var(--primary);
-            background-color: #fff;
+            background-color: var(--input-bg-focus);
             box-shadow: 0 0 0 3px rgba(255, 103, 0, 0.15);
         }
 
@@ -224,7 +323,7 @@
         }
 
         .refresh-btn {
-            background-color: #f2f2f7;
+            background-color: var(--input-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 4px 8px;
@@ -238,7 +337,7 @@
         }
 
         .refresh-btn:hover {
-            background-color: #e5e5ea;
+            background-color: var(--border-color);
         }
 
         .refresh-btn.spinning svg {
@@ -253,18 +352,23 @@
         .status-tag {
             font-size: 11px;
             font-weight: normal;
-            color: var(--info-blue);
+            color: var(--loss-green);
         }
 
         .status-tag.error {
             color: var(--profit-red);
         }
 
-        .is-profit { color: var(--profit-red); }
-        .is-loss { color: var(--loss-green); }
+        .is-profit { color: var(--profit-red) !important; }
+        .is-loss { color: var(--loss-green) !important; }
 
+        /* 绝对定位锁死：严格限制右侧高度等同于左侧，超出一律内部滚动 */
         .table-wrapper {
-            max-height: 560px;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
             overflow-y: auto;
             overflow-x: auto;
             border-radius: 12px;
@@ -276,7 +380,7 @@
             border-collapse: collapse;
             text-align: center;
             font-size: 13px;
-            background-color: #ffffff;
+            background-color: var(--card-bg);
         }
 
         th, td {
@@ -304,18 +408,43 @@
         }
 
         tr:nth-child(even) td {
-            background-color: #fafafa;
+            background-color: var(--section-bg);
         }
 
         .highlight-cell {
             font-weight: 700;
             color: var(--primary);
         }
+        
+        /* 滚动条深色美化 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #555; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #777; 
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <!-- 右上角刷新网页按钮 -->
+    <button class="page-reload-btn" onclick="location.reload()" title="刷新页面">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+    </button>
+
     <div class="header">
         <div class="title-wrapper">
             <!-- 小米官方 Logo SVG -->
@@ -329,7 +458,18 @@
             </svg>
             <h1>小米集团 (01810.HK) 持仓测算</h1>
         </div>
-        <p>退休计划实时动态估算</p>
+
+        <!-- 顶部核心行情栏 -->
+        <div class="market-status-bar">
+            <div class="market-item">
+                <span class="market-label">昨收基准:</span>
+                <span class="market-value" id="prevCloseDisplay">-- HKD</span>
+            </div>
+            <div class="market-item">
+                <span class="market-label">今日涨跌:</span>
+                <span class="market-value" id="changePercentDisplay">--%</span>
+            </div>
+        </div>
     </div>
 
     <!-- 左右并排容器 -->
@@ -338,22 +478,37 @@
         <div class="left-panel">
             <!-- 上半部：测算结果面板 -->
             <div class="results-section">
+                <!-- 成本显示 -->
                 <div class="result-card">
-                    <span class="result-label">持仓市值 (港币 HKD)</span>
-                    <span class="result-value" id="valHkd">0.00 HKD</span>
+                    <span class="result-label">成本</span>
+                    <div class="result-value multi-value">
+                        <span id="costHkd" style="color: #ffab91;">0.00 HKD</span>
+                        <span id="costRmb" class="sub-value" style="color: #ffab91;">¥ 0.00</span>
+                    </div>
                 </div>
+
+                <!-- 市值显示 -->
                 <div class="result-card">
-                    <span class="result-label">折算市值 (人民币 RMB)</span>
-                    <span class="result-value highlight-value" id="valRmb">0.00 元</span>
+                    <span class="result-label">市值</span>
+                    <div class="result-value multi-value">
+                        <span id="valHkd" style="color: var(--primary);">0.00 HKD</span>
+                        <span id="valRmb" class="sub-value" style="color: var(--primary);">¥ 0.00</span>
+                    </div>
                 </div>
+
+                <!-- 盈亏显示 -->
                 <div class="result-card">
-                    <span class="result-label">持仓盈亏状况</span>
-                    <span class="result-value" id="profitVal">0.00 HKD</span>
+                    <span class="result-label">盈亏</span>
+                    <div class="result-value multi-value" id="profitContainer">
+                        <span id="profitHkd">0.00 HKD</span>
+                        <span id="profitRmb" class="sub-value">¥ 0.00</span>
+                        <span id="profitPercent" class="sub-value" style="color: var(--profit-red);">0.00%</span>
+                    </div>
                 </div>
 
                 <div class="progress-box">
                     <div class="progress-header">
-                        <span>退休目标完成度</span>
+                        <span>目标完成度</span>
                         <span id="progressText" style="font-weight: bold; color: var(--primary);">0%</span>
                     </div>
                     <div class="progress-bar-bg">
@@ -368,13 +523,12 @@
                 <div class="form-group">
                     <label for="currentPrice">
                         <span>股价 <span id="priceStatus" class="status-tag">获取中...</span></span>
-                        <button type="button" class="refresh-btn" id="refreshPriceBtn" onclick="refreshPrice()">
+                        <button type="button" class="refresh-btn" id="refreshPriceBtn" onclick="refreshPrice()" title="刷新股价">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                            刷新
                         </button>
                     </label>
                     <div class="price-input-wrapper">
-                        <input type="number" id="currentPrice" value="27.14" step="0.01" min="0.01">
+                        <input type="number" id="currentPrice" value="28.78" step="0.01" min="0.01" max="500">
                         <span class="unit">HKD</span>
                     </div>
                 </div>
@@ -382,34 +536,33 @@
                 <div class="form-group">
                     <label for="exchangeRate">
                         <span>汇率 (1 RMB) <span id="rateStatus" class="status-tag">获取中...</span></span>
-                        <button type="button" class="refresh-btn" id="refreshRateBtn" onclick="refreshRate()">
+                        <button type="button" class="refresh-btn" id="refreshRateBtn" onclick="refreshRate()" title="刷新汇率">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                            刷新
                         </button>
                     </label>
-                    <input type="number" id="exchangeRate" value="1.1577" step="0.0001">
+                    <input type="number" id="exchangeRate" value="1.1577" step="0.0001" max="500">
                 </div>
 
                 <!-- 第二行：持股数 + 买入成本 -->
                 <div class="form-group">
                     <label for="shareCount">持股数 (股)</label>
-                    <input type="number" id="shareCount" value="23600" step="100">
+                    <input type="number" id="shareCount" step="100" max="100000">
                 </div>
 
                 <div class="form-group">
                     <label for="costPrice">买入成本 (HKD)</label>
-                    <input type="number" id="costPrice" value="43.471" step="0.001">
+                    <input type="number" id="costPrice" step="0.001" max="500">
                 </div>
 
                 <!-- 第三行：定投金额 + 目标总市值 -->
                 <div class="form-group">
                     <label for="monthlyInvest">月定投 (RMB)</label>
-                    <input type="number" id="monthlyInvest" value="10000" step="1000">
+                    <input type="number" id="monthlyInvest" step="1000" max="50000">
                 </div>
 
                 <div class="form-group">
                     <label for="targetRmb">目标市值 (RMB)</label>
-                    <input type="number" id="targetRmb" value="4000000" step="10000">
+                    <input type="number" id="targetRmb" step="10000" max="10000000">
                 </div>
             </div>
         </div>
@@ -440,9 +593,18 @@
 </div>
 
 <script>
-    /**
-     * 生成从 2026.09 到 2036.12 每隔 3 个月的节点数组
-     */
+    // 默认配置常量
+    const DEFAULT_COST_PRICE = 43.556;    // 买入成本 (HKD)
+    const DEFAULT_SHARE_COUNT = 23600;    // 持股数 (股)
+    const DEFAULT_MONTHLY_INVEST = 10000; // 月定投 (RMB)
+    const DEFAULT_TARGET_RMB = 4000000;   // 目标市值 (RMB)
+
+    // 初始化输入框默认值
+    document.getElementById('costPrice').value = DEFAULT_COST_PRICE;
+    document.getElementById('shareCount').value = DEFAULT_SHARE_COUNT;
+    document.getElementById('monthlyInvest').value = DEFAULT_MONTHLY_INVEST;
+    document.getElementById('targetRmb').value = DEFAULT_TARGET_RMB;
+
     function generateQuarterlyNodes() {
         const nodes = [];
         const startYear = 2026;
@@ -457,21 +619,13 @@
         return nodes;
     }
 
-    /**
-     * 计算从【当前实际年月】到【目标节点年月】的相差月数
-     */
     function getRemainingMonths(targetYear, targetMonth) {
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;
-
-        const diff = (targetYear - currentYear) * 12 + (targetMonth - currentMonth);
-        return diff;
+        return (targetYear - currentYear) * 12 + (targetMonth - currentMonth);
     }
 
-    /**
-     * 核心算法：二分法求解动态线性增长下的达标股价、最终持股数与平均摊薄成本
-     */
     function solveLinearTarget(startPrice, initShares, initCostHkd, monthlyInvestHkd, months, targetHkd) {
         let lowPrice = 0.01;
         let highPrice = 500.0;
@@ -480,7 +634,6 @@
 
         for (let iter = 0; iter < 30; iter++) {
             midPrice = (lowPrice + highPrice) / 2;
-            
             let accumShares = initShares;
             for (let m = 1; m <= months; m++) {
                 let priceAtMonth = startPrice + (m / months) * (midPrice - startPrice);
@@ -518,35 +671,60 @@
         const cost = parseFloat(document.getElementById('costPrice').value) || 0;
         const monthlyInvestRmb = parseFloat(document.getElementById('monthlyInvest').value) || 0;
         const rate = parseFloat(document.getElementById('exchangeRate').value) || 1.1577;
-        const targetRmb = parseFloat(document.getElementById('targetRmb').value) || 3000000;
+        const targetRmb = parseFloat(document.getElementById('targetRmb').value) || 4000000;
 
-        // 1. 持仓测算逻辑
+        // 1. 核心持仓与成本计算
         const valHkd = price * initShares;
         const valRmb = valHkd / rate;
 
         const totalCostHkd = cost * initShares;
+        const totalCostRmb = totalCostHkd / rate;
+
         const profitHkd = valHkd - totalCostHkd;
+        const profitRmb = profitHkd / rate;
         const profitRate = totalCostHkd > 0 ? (profitHkd / totalCostHkd) * 100 : 0;
 
         const progress = Math.min((valRmb / targetRmb) * 100, 100);
 
+        // 2. 更新已投入成本
+        document.getElementById('costHkd').innerText = totalCostHkd.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' HKD';
+        document.getElementById('costRmb').innerText = '¥ ' + totalCostRmb.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // 3. 更新持仓市值
         document.getElementById('valHkd').innerText = valHkd.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' HKD';
         document.getElementById('valRmb').innerText = '¥ ' + valRmb.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-        const profitElem = document.getElementById('profitVal');
+        // 4. 更新持仓盈亏
         const profitSign = profitHkd >= 0 ? '+' : '';
-        profitElem.innerText = `${profitSign}${profitHkd.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} HKD (${profitSign}${profitRate.toFixed(2)}%)`;
-        
+        const profitHkdText = `${profitSign}${profitHkd.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} HKD`;
+        const profitRmbText = `¥ ${profitSign}${profitRmb.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        document.getElementById('profitHkd').innerText = profitHkdText;
+        document.getElementById('profitRmb').innerText = profitRmbText;
+
+        const profitContainer = document.getElementById('profitContainer');
+        const profitRmbElem = document.getElementById('profitRmb');
         if (profitHkd >= 0) {
-            profitElem.className = 'result-value is-profit';
+            profitContainer.className = 'result-value multi-value is-profit';
+            profitRmbElem.className = 'sub-value is-profit';
         } else {
-            profitElem.className = 'result-value is-loss';
+            profitContainer.className = 'result-value multi-value is-loss';
+            profitRmbElem.className = 'sub-value is-loss';
         }
 
         document.getElementById('progressBar').style.width = progress.toFixed(2) + '%';
         document.getElementById('progressText').innerText = progress.toFixed(2) + '%';
 
-        // 2. 动态生成并计算季度表格
+        // 更新盈亏百分比
+        const profitPercent = document.getElementById('profitPercent');
+        profitPercent.innerText = `${profitRate >= 0 ? '+' : ''}${profitRate.toFixed(2)}%`;
+        if (profitRate >= 0) {
+            profitPercent.style.color = 'var(--profit-red)';
+        } else {
+            profitPercent.style.color = 'var(--loss-green)';
+        }
+
+        // 5. 动态生成并计算季度表格
         const targetHkd = targetRmb * rate;
         const monthlyInvestHkd = monthlyInvestRmb * rate;
         const priceTableBody = document.getElementById('priceTableBody');
@@ -559,14 +737,11 @@
 
             const res = solveLinearTarget(price, initShares, cost, monthlyInvestHkd, months, targetHkd);
 
-            // 转换投入本金与盈利金额为人民币 RMB
-            const totalCostRmb = res.totalCostHkd / rate;
-            const profitRmb = res.profitHkd / rate;
+            const totalCostRmbStep = res.totalCostHkd / rate;
+            const profitRmbStep = res.profitHkd / rate;
 
             const profitSignText = res.profitRate >= 0 ? '+' : '';
             const profitClass = res.profitRate >= 0 ? 'is-profit' : 'is-loss';
-            
-            // 格式化月份为两位数字 (如: 03, 06, 09, 12)
             const formattedMonth = String(node.month).padStart(2, '0');
 
             priceRowsHtml += `
@@ -574,10 +749,10 @@
                     <td><b>${node.year}.${formattedMonth}</b></td>
                     <td>${months}</td>
                     <td>~${Math.round(res.totalShares).toLocaleString()} 股</td>
-                    <td><b>¥ ${Math.round(totalCostRmb).toLocaleString()}</b></td>
+                    <td><b>¥ ${Math.round(totalCostRmbStep).toLocaleString()}</b></td>
                     <td>${res.avgCostPrice.toFixed(2)} 港币</td>
                     <td class="highlight-cell">${res.targetPrice.toFixed(2)} 港币</td>
-                    <td class="${profitClass}"><b>${profitSignText}¥ ${Math.round(profitRmb).toLocaleString()}</b></td>
+                    <td class="${profitClass}"><b>${profitSignText}¥ ${Math.round(profitRmbStep).toLocaleString()}</b></td>
                     <td class="${profitClass}" style="font-weight: 700;">${profitSignText}${res.profitRate.toFixed(2)}%</td>
                 </tr>
             `;
@@ -585,7 +760,6 @@
         priceTableBody.innerHTML = priceRowsHtml;
     }
 
-    // 刷新股价按钮触发
     function refreshPrice() {
         const btn = document.getElementById('refreshPriceBtn');
         btn.classList.add('spinning');
@@ -594,7 +768,6 @@
         });
     }
 
-    // 刷新汇率按钮触发
     function refreshRate() {
         const btn = document.getElementById('refreshRateBtn');
         btn.classList.add('spinning');
@@ -603,7 +776,6 @@
         });
     }
 
-    // 自动获取小米实时股价 (腾讯财经 API)
     function fetchStockPrice(callback) {
         const statusElem = document.getElementById('priceStatus');
         statusElem.innerText = '获取中...';
@@ -615,13 +787,34 @@
         script.onload = function() {
             if (typeof v_hk01810 !== 'undefined') {
                 const elements = v_hk01810.split('~');
+                
+                // 索引 3: 最新股价
                 const livePrice = parseFloat(elements[3]);
-                if (livePrice && !isNaN(livePrice)) {
+                // 索引 4: 昨收价 (作为对比基准)
+                const prevClose = parseFloat(elements[4]);
+                // 索引 32: 今日涨跌幅 (%)
+                const changeRatio = parseFloat(elements[32]);
+
+                if (!isNaN(livePrice)) {
                     document.getElementById('currentPrice').value = livePrice.toFixed(2);
-                    statusElem.innerText = '● 已更新';
-                    statusElem.className = 'status-tag';
-                    calculate();
                 }
+
+                // 渲染昨收基准价
+                if (!isNaN(prevClose)) {
+                    document.getElementById('prevCloseDisplay').innerText = prevClose.toFixed(2) + ' HKD';
+                }
+
+                // 渲染今日涨跌幅
+                if (!isNaN(changeRatio)) {
+                    const ratioSign = changeRatio >= 0 ? '+' : '';
+                    const displayElem = document.getElementById('changePercentDisplay');
+                    displayElem.innerText = `${ratioSign}${changeRatio.toFixed(2)}%`;
+                    displayElem.className = `market-value ${changeRatio >= 0 ? 'is-profit' : 'is-loss'}`;
+                }
+
+                statusElem.innerText = '● 已更新';
+                statusElem.className = 'status-tag';
+                calculate();
             }
             document.body.removeChild(script);
             if (callback) callback();
@@ -636,7 +829,6 @@
         document.body.appendChild(script);
     }
 
-    // 自动获取实时汇率 (CNY -> HKD)
     async function fetchExchangeRate(callback) {
         const statusElem = document.getElementById('rateStatus');
         statusElem.innerText = '获取中...';
@@ -662,13 +854,19 @@
         }
     }
 
-    // 监听所有输入框事件
     const inputs = document.querySelectorAll('input');
     inputs.forEach(input => {
-        input.addEventListener('input', calculate);
+        input.addEventListener('input', function() {
+            // 限制最大8位数字
+            const maxLength = 8;
+            const value = this.value;
+            if (value.length > maxLength) {
+                this.value = value.slice(0, maxLength);
+            }
+            calculate();
+        });
     });
 
-    // 初始化运行
     calculate();
     fetchStockPrice();
     fetchExchangeRate();
