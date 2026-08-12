@@ -27,10 +27,8 @@ export function PriceTable({ results }: PriceTableProps) {
         borderRadius: 1.5,
         border: '1px solid #333',
         overflow: 'auto',
-        '&::-webkit-scrollbar': { width: 8, height: 8 },
-        '&::-webkit-scrollbar-track': { bgcolor: '#121212' },
-        '&::-webkit-scrollbar-thumb': { bgcolor: '#555', borderRadius: 1 },
-        '&::-webkit-scrollbar-thumb:hover': { bgcolor: '#777' },
+        scrollbarWidth: 'none',
+        '&::-webkit-scrollbar': { display: 'none' },
       }}
     >
       <Table stickyHeader>
