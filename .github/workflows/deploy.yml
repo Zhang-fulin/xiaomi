@@ -27,9 +27,6 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Copy CNAME to dist
-        run: cp CNAME dist/CNAME
-
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
