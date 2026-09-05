@@ -21,7 +21,7 @@ export const STOCK_API_URL = 'https://qt.gtimg.cn/q=hk01810';
 export const RATE_API_URL = 'https://open.er-api.com/v6/latest/CNY';
 
 /** 季度测算结束年 */
-export const QUARTERLY_END_YEAR = 2036;
+export const QUARTERLY_END_YEAR = 2040;
 
 /** 输入框最大长度 */
 export const INPUT_MAX_LENGTH = 8;
