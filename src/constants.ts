@@ -12,7 +12,7 @@ export const DEFAULT_SHARE_COUNT = 24800;
 export const DEFAULT_MONTHLY_INVEST = 10000;
 
 /** 目标市值 (RMB) */
-export const DEFAULT_TARGET_RMB = 2500000;
+export const DEFAULT_TARGET_RMB = 3000000;
 
 /** 腾讯股票行情 API */
 export const STOCK_API_URL = 'https://qt.gtimg.cn/q=hk01810';
