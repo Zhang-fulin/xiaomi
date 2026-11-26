@@ -3,10 +3,10 @@
 // ========================
 
 /** 买入成本 (HKD) */
-export const DEFAULT_COST_PRICE = 41.629;
+export const DEFAULT_COST_PRICE = 41.415;
 
 /** 持股数 (股) */
-export const DEFAULT_SHARE_COUNT = 27600;
+export const DEFAULT_SHARE_COUNT = 28000;
 
 /** 月定投 (RMB) */
 export const DEFAULT_MONTHLY_INVEST = 10000;
